@@ -1,0 +1,7 @@
+*~
+*.egg-info
+*.pyc
+*.swp
+*.lock
+*.hdf5
+__pycache__
