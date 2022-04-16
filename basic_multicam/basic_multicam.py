@@ -3,6 +3,7 @@ import cv2
 import time
 import queue
 import signal
+import argparse
 import threading
 import EasyPySpin
 import configparser
@@ -13,7 +14,6 @@ done = False
 def handle_sigint(signum, frame):
     global done
     done = True
-    print(f'sigint_handler: {done}')
 signal.signal(signal.SIGINT, handle_sigint)
 
 
@@ -96,11 +96,26 @@ class DisplayHandler:
 
 def main():
 
-    config_filename = sys.argv[1]
-    camera_config = get_config(config_filename)
+    parser = argparse.ArgumentParser(description='acquire images from multiple cameras')
+    parser.add_argument(
+            '--config', '-c', 
+            type=str, 
+            help='camera configuration file', 
+            default='camera_config.ini' 
+            )
+
+    parser.add_argument(
+            '--norecord', '-n', 
+            help='option to not record video', 
+            action='store_true'
+            )
+    args = parser.parse_args()
+
+    camera_config = get_config(args.config)
     cap_dict = setup_cameras(camera_config)
 
-    logger = h5_logger.H5Logger('data.hdf5', param_attr=camera_config)
+    if not args.norecord:
+        logger = h5_logger.H5Logger('data.hdf5', param_attr=camera_config)
 
     display_handler = DisplayHandler(camera_config)
     display_thread = threading.Thread(target=display_handler.run, daemon=True)
@@ -125,6 +140,7 @@ def main():
         frame_dict = {}
         for camera, cap in cap_dict.items(): 
             rval, frame = cap.read()
+            # May need to change when using hardware trigger and grab timeout.
             if not rval:
                 print(f'{camera} dummy frame')
                 frame_dict[camera] = dummy_frame[camera]
@@ -134,9 +150,11 @@ def main():
             t_now = time.time()
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
-            fps[camera] = 0.9*fps[camera] + 0.1*(1.0/dt)
+            fps[camera] = 0.99*fps[camera] + 0.01*(1.0/dt)
 
-        logger.add(frame_dict)
+        if not args.norecord:
+            logger.add(frame_dict)
+
         if display_handler.queue.qsize() == 0:
             display_handler.queue.put((frame_dict, fps))
 
