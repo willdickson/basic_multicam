@@ -9,6 +9,7 @@ import EasyPySpin
 import configparser
 import numpy as np
 import h5_logger
+import PySpin
 
 done = False
 def handle_sigint(signum, frame):
@@ -66,6 +67,8 @@ def setup_cameras(config):
     for camera, prop_dict in config.items():
         print(camera)
         cap_dict[camera] =  EasyPySpin.VideoCapture(prop_dict['SerialNumber'])
+        cap_dict[camera].setExceptionMode(True)
+        cap_dict[camera].grabTimeout = 100
         for prop_name, value in prop_dict.items():
             if prop_name in PropertyConverter:
                 cap_dict[camera].set_pyspin_value(prop_name, value)
@@ -128,29 +131,40 @@ def main():
         t_last[camera] = time.time()
         fps[camera] = 0.0
 
-    # Create dumm frames - for cases of missed frames
-    dummy_frame = {}
-    for camera in  camera_config:
-        w = camera_config[camera]['Width']
-        h = camera_config[camera]['Height']
-        dummy_frame[camera] = np.zeros((h,w),dtype=np.uint8)
+    ## Create dumm frames - for cases of missed frames
+    #dummy_frame = {}
+    #for camera in  camera_config:
+    #    w = camera_config[camera]['Width']
+    #    h = camera_config[camera]['Height']
+    #    dummy_frame[camera] = np.zeros((h,w),dtype=np.uint8)
 
     while not done:
 
         frame_dict = {}
+
         for camera, cap in cap_dict.items(): 
-            rval, frame = cap.read()
-            # May need to change when using hardware trigger and grab timeout.
+            sys.stdout.flush()
+            try:
+                rval, frame = cap.read()
+            except PySpin.SpinnakerException as err:
+                rval = False
             if not rval:
-                print(f'{camera} dummy frame')
-                frame_dict[camera] = dummy_frame[camera]
-            else:
-                frame_dict[camera] = frame
+                break 
+            print(f'{camera}:  ok')
+
+            frame_dict[camera] = frame
+
+            ## May need to change when using hardware trigger and grab timeout.
+            #if not rval:
+            #    print(f'{camera} dummy frame')
+            #    frame_dict[camera] = dummy_frame[camera]
+            #else:
+            #    frame_dict[camera] = frame
 
             t_now = time.time()
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
-            fps[camera] = 0.99*fps[camera] + 0.01*(1.0/dt)
+            fps[camera] = 0.8*fps[camera] + 0.2*(1.0/dt)
 
         if not args.norecord:
             logger.add(frame_dict)
