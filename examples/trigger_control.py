@@ -1,7 +1,7 @@
 from camera_trigger import CameraTrigger
 
 trigger_port = '/dev/ttyUSB0'
-cam_hz = 30
+cam_hz = 100 
 
 trig = CameraTrigger(trigger_port) 
 trig.set_freq(cam_hz) 

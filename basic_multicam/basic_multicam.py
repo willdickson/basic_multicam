@@ -7,6 +7,7 @@ import argparse
 import threading
 import EasyPySpin
 import configparser
+import collections
 import numpy as np
 import h5_logger
 import PySpin
@@ -81,20 +82,36 @@ class DisplayHandler:
     def __init__(self, camera_config):
         self.queue = queue.Queue() 
         self.camera_config = camera_config
+        self.display_cam_num = 0
+        self.display_name = 'cameras'
+
+    def on_mouse_callback(self, event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDBLCLK:
+            self.display_cam_num += 1
 
     def run(self):
+
+        cv2.namedWindow(self.display_name)
+        cv2.setMouseCallback(self.display_name, self.on_mouse_callback)
+
         while True:
             frame_dict = None
             try:
                 frame_dict, fps = self.queue.get()
             except queue.Empty():
                 continue
-            for camera, frame in frame_dict.items():
-                name = self.camera_config[camera]['Name']
-                fps_str = f'{int(fps[camera]):03d}'
-                cv2.putText(frame, fps_str, (10,25), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 1, 2)
-                cv2.imshow(name, frame)
-            cv2.waitKey(100)
+
+            camera_list = [camera for camera in frame_dict]
+            cam_num = self.display_cam_num%len(camera_list)
+            camera = camera_list[cam_num]
+            frame = frame_dict[camera]
+
+            name = self.camera_config[camera]['Name'].lower()
+            #info_str = f'{int(fps[camera]):03d}fps, {name}, ({cam_num+1}/{len(camera_list)})'
+            info_str = f'({cam_num+1}/{len(camera_list)}) {name} {int(fps[camera]):03d}fps'
+            cv2.putText(frame, info_str, (10,27), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 1, 2)
+            cv2.imshow(self.display_name, frame)
+            cv2.waitKey(1)
 
 
 def main():
@@ -131,45 +148,37 @@ def main():
         t_last[camera] = time.time()
         fps[camera] = 0.0
 
-    ## Create dumm frames - for cases of missed frames
-    #dummy_frame = {}
-    #for camera in  camera_config:
-    #    w = camera_config[camera]['Width']
-    #    h = camera_config[camera]['Height']
-    #    dummy_frame[camera] = np.zeros((h,w),dtype=np.uint8)
+    # Create dumm frames - for cases of missed frames
+    dummy_frame = {}
+    for camera in  camera_config:
+        w = camera_config[camera]['Width']
+        h = camera_config[camera]['Height']
+        dummy_frame[camera] = np.zeros((h,w),dtype=np.uint8)
 
     while not done:
 
-        frame_dict = {}
+        frame_dict = collections.OrderedDict() 
 
         for camera, cap in cap_dict.items(): 
-            sys.stdout.flush()
             try:
                 rval, frame = cap.read()
             except PySpin.SpinnakerException as err:
                 rval = False
+
             if not rval:
-                break 
-            print(f'{camera}:  ok')
-
-            frame_dict[camera] = frame
-
-            ## May need to change when using hardware trigger and grab timeout.
-            #if not rval:
-            #    print(f'{camera} dummy frame')
-            #    frame_dict[camera] = dummy_frame[camera]
-            #else:
-            #    frame_dict[camera] = frame
+                frame_dict[camera] = dummy_frame[camera]
+            else:
+                frame_dict[camera] = frame
 
             t_now = time.time()
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
-            fps[camera] = 0.8*fps[camera] + 0.2*(1.0/dt)
+            fps[camera] = 0.95*fps[camera] + 0.05*(1.0/dt)
 
         if not args.norecord:
             logger.add(frame_dict)
 
-        if display_handler.queue.qsize() == 0:
+        if display_handler.queue.qsize() == 0 and frame_dict:
             display_handler.queue.put((frame_dict, fps))
 
 
