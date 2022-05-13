@@ -1,0 +1,2 @@
+git+https://github.com/elerac/EasyPySpin#egg=EasyPySpin
+git+https://github.com/willdickson/h5_logger#egg=h5_logger

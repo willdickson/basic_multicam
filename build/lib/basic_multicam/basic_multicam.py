@@ -135,13 +135,8 @@ def main():
     camera_config = get_config(args.config)
     cap_dict = setup_cameras(camera_config)
 
-    # -----------------------------------------------------------------------------
-    # WBD
-    # 
-    # Need to modify to set location of data file
     if not args.norecord:
         logger = h5_logger.H5Logger('data.hdf5', param_attr=camera_config)
-    # -----------------------------------------------------------------------------
 
     display_handler = DisplayHandler(camera_config)
     display_thread = threading.Thread(target=display_handler.run, daemon=True)
