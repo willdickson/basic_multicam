@@ -63,17 +63,21 @@ def get_config(filename):
     return camera_config_dict
 
 
-def setup_cameras(config):
+def setup_cameras(config, args):
     cap_dict = {}
+    print()
     print('setting up cameras')
     for camera, prop_dict in config.items():
-        print(camera)
+        print(f'  {camera}')
         cap_dict[camera] =  EasyPySpin.VideoCapture(prop_dict['SerialNumber'])
         cap_dict[camera].setExceptionMode(True)
         cap_dict[camera].grabTimeout = 100
         for prop_name, value in prop_dict.items():
             if prop_name in PropertyConverter:
                 cap_dict[camera].set_pyspin_value(prop_name, value)
+        if args.softtrig:
+            # override hardware trigger mode if softtrig option selected
+            cap_dict[camera].set_pyspin_value('TriggerMode', 'Off')
     print()
     return cap_dict
 
@@ -116,6 +120,9 @@ class DisplayHandler:
 
 
 def main():
+    """
+    Main entry point multicam command line application
+    """
 
     parser = argparse.ArgumentParser(description='acquire images from multiple cameras')
     parser.add_argument(
@@ -126,22 +133,30 @@ def main():
             )
 
     parser.add_argument(
+            '--output', '-o', 
+            help='output file', 
+            default='data.hdf5'
+            )
+
+    parser.add_argument(
             '--norecord', '-n', 
             help='option to not record video', 
             action='store_true'
             )
+
+    parser.add_argument(
+            '--softtrig', '-s',
+            help='use software camera trigger',
+            action='store_true'
+            )
+
     args = parser.parse_args()
 
     camera_config = get_config(args.config)
-    cap_dict = setup_cameras(camera_config)
+    cap_dict = setup_cameras(camera_config, args)
 
-    # -----------------------------------------------------------------------------
-    # WBD
-    # 
-    # Need to modify to set location of data file
     if not args.norecord:
-        logger = h5_logger.H5Logger('data.hdf5', param_attr=camera_config)
-    # -----------------------------------------------------------------------------
+        logger = h5_logger.H5Logger(args.output, param_attr=camera_config)
 
     display_handler = DisplayHandler(camera_config)
     display_thread = threading.Thread(target=display_handler.run, daemon=True)
@@ -186,7 +201,6 @@ def main():
 
         if display_handler.queue.qsize() == 0 and frame_dict:
             display_handler.queue.put((frame_dict, fps))
-
 
     for camera, cap in cap_dict.items():
         cap.release()
