@@ -18,6 +18,9 @@ setup(
     ],
     packages=find_packages(exclude=[]),
     entry_points = {
-        'console_scripts' : ['multicam = basic_multicam.basic_multicam:main'],
+        'console_scripts' : [
+            'multicam = basic_multicam.basic_multicam:main',
+            'multicam-extractor = basic_multicam.video_extractor:main',
+            ],
         },
 )
