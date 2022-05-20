@@ -150,6 +150,13 @@ def main():
             action='store_true'
             )
 
+    parser.add_argument(
+            '--metadata', '-m',
+            type=str,
+            help='meta data to be added to file name',
+            default='',
+            )
+
     args = parser.parse_args()
 
     camera_config = get_config(args.config)
