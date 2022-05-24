@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import queue
@@ -13,6 +14,9 @@ import PySpin
 import EasyPySpin
 import h5_logger
 
+DEFAULT_CONFIG_FILE = 'camera_config.ini'
+DEFAULT_CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'multicam')
+
 done = False
 def handle_sigint(signum, frame):
     global done
@@ -22,6 +26,7 @@ signal.signal(signal.SIGINT, handle_sigint)
 
 PropertyConverter = { 
         'AcquisitionFrameRateEnable': bool, 
+        'AcquisitionFrameRate': float,  
         'GainAuto': str, 
         'ExposureAuto': str,
         'TriggerMode': str, 
@@ -30,13 +35,16 @@ PropertyConverter = {
         'Height': int, 
         'OffsetX': int, 
         'OffsetY': int,
-        'AcquisitionFrameRate': float,  
         'ExposureTime': float,
         'Gain': float, 
         }
 
 
 def get_config(filename):
+
+    # Check that file exists
+    if not os.path.exists(filename):
+        raise RuntimeError(f"camera configuration file, {filename}, doesn't exist")
 
     # Read configuration from file
     config = configparser.ConfigParser()
@@ -129,7 +137,7 @@ def main():
             '--config', '-c', 
             type=str, 
             help='camera configuration file', 
-            default='camera_config.ini' 
+            default='' 
             )
 
     parser.add_argument(
@@ -153,17 +161,30 @@ def main():
     parser.add_argument(
             '--metadata', '-m',
             type=str,
-            help='meta data to be added to file name',
+            help='meta data to be added to hdf5 file',
             default='',
             )
 
     args = parser.parse_args()
 
-    camera_config = get_config(args.config)
+    # Check configuration
+    config_file = args.config
+    if not config_file:
+        curdir_config_file = os.path.join(os.curdir, DEFAULT_CONFIG_FILE)
+        if os.path.exists(curdir_config_file):
+            config_file = curdir_config_file
+        else:
+            config_file = os.path.join(DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE)
+    print(f'config_file: {config_file}')
+
+    # Setup cameras based configuration
+    camera_config = get_config(config_file)
     cap_dict = setup_cameras(camera_config, args)
 
     if not args.norecord:
-        logger = h5_logger.H5Logger(args.output, param_attr=camera_config)
+        param_attr = dict(camera_config)
+        param_attr['Metadata'] = args.metadata
+        logger = h5_logger.H5Logger(args.output, param_attr=param_attr)
 
     display_handler = DisplayHandler(camera_config)
     display_thread = threading.Thread(target=display_handler.run, daemon=True)

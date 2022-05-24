@@ -35,16 +35,17 @@ def main():
 
     # Load camera conifiguration
     camera_config = json.loads(h5file.attrs['jsonparam'])
+    metadata = camera_config['Metadata']
 
     # Save camera_configuration
-    camera_config_file_path = os.path.join(path_to_h5file, 'camera_config.json')
+    camera_config_file_path = os.path.join(path_to_h5file, f'camera_config_{metadata}.json')
     with open(camera_config_file_path, 'w') as f:
         json.dump(camera_config, f, indent=4, sort_keys=True)
 
     # Loop over cameras
     for camera_str in h5file:
         camera_name = camera_config[camera_str]['Name']
-        output_file = os.path.join(path_to_h5file, f'{camera_str}_{camera_name}.mp4')
+        output_file = os.path.join(path_to_h5file, f'{camera_str}_{camera_name}_{metadata}.mp4')
         video_writer = skvideo.io.FFmpegWriter(output_file, outputdict={'-vcodec':'libx264'})
         num_frame = h5file[camera_str].shape[0]
         for frame in tqdm.tqdm(iterable=h5file[camera_str], total=num_frame, desc='Extracting...', ascii=False, ncols=75):
