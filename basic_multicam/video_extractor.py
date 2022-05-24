@@ -1,3 +1,20 @@
+"""
+video_extractor: command line utility for extracting video created by multicam
+
+
+  usage: tmp.py [-h] [--format FORMAT] filename
+  
+  Extracts videos from the hdf5 file created by multicam
+  
+  positional arguments:
+    filename              name of hdf5 file with camera frames
+  
+  optional arguments:
+    -h, --help            show this help message and exit
+    --format FORMAT, -f FORMAT
+                          video format
+"""
+
 import os
 import argparse
 import h5py
@@ -6,11 +23,10 @@ import skvideo.io
 import cv2
 import tqdm
 
-
-
 def main():
 
-    parser = argparse.ArgumentParser(description='extract videos from hdf5 file created by multicam')
+    description_str = 'Extracts videos from the hdf5 file created by multicam'
+    parser = argparse.ArgumentParser(description=description_str)
 
     parser.add_argument(
             'filename', 

@@ -1,3 +1,24 @@
+"""
+basic_multicam:  implements the multicam command line application
+
+
+  usage: multicam [-h] [--config CONFIG] [--output OUTPUT] [--norecord]
+                [--softtrig] [--metadata METADATA]
+  
+  Acquires simultaneous images from multiple cameras and save to an hdf5 file.
+  
+  optional arguments:
+    -h, --help            show this help message and exit
+    --config CONFIG, -c CONFIG
+                          camera configuration file
+    --output OUTPUT, -o OUTPUT
+                          output file
+    --norecord, -n        option to not record video
+    --softtrig, -s        use software camera trigger
+    --metadata METADATA, -m METADATA
+                          meta data to be added to hdf5 file
+"""
+
 import os
 import sys
 import time
@@ -10,9 +31,9 @@ import configparser
 import cv2
 import numpy as np
 import PySpin
-
 import EasyPySpin
 import h5_logger
+
 
 DEFAULT_CONFIG_FILE = 'camera_config.ini'
 DEFAULT_CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'multicam')
@@ -41,6 +62,18 @@ PropertyConverter = {
 
 
 def get_config(filename):
+    """
+    Read camera configuration .ini file.  Convert properties to appropriate
+    types using PropertyConverter data.  Return dictionary of camera settings.
+
+    Argument:
+
+      filename:  name of camera configuration file
+
+    Return:
+
+      camera_config_dict: dictionary of properties for each camera
+    """
 
     # Check that file exists
     if not os.path.exists(filename):
@@ -72,6 +105,20 @@ def get_config(filename):
 
 
 def setup_cameras(config, args):
+    """
+    Creates VideoCapture objects for each camera and sets camera properties based on 
+    camera configuration.
+
+    Arguments:
+    
+      config:  camera configuration dictionary
+      args:    program command line arguments
+
+    Return:
+
+      cap_dict:  dictionary of camera name to VideoCapture objects.
+      
+    """
     cap_dict = {}
     print()
     print('setting up cameras')
@@ -91,6 +138,12 @@ def setup_cameras(config, args):
 
 
 class DisplayHandler:
+    """
+    Implements a simple simple window video display.  The current camera image
+    is shown in an opencv named window. Double clicking on the window cycles
+    through the currently selected camera. The run method should be run as the
+    target of the thread. 
+    """
 
     def __init__(self, camera_config):
         self.queue = queue.Queue() 
@@ -120,7 +173,6 @@ class DisplayHandler:
             frame = frame_dict[camera]
 
             name = self.camera_config[camera]['Name'].lower()
-            #info_str = f'{int(fps[camera]):03d}fps, {name}, ({cam_num+1}/{len(camera_list)})'
             info_str = f'({cam_num+1}/{len(camera_list)}) {name} {int(fps[camera]):03d}fps'
             cv2.putText(frame, info_str, (10,27), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 1, 2)
             cv2.imshow(self.display_name, frame)
@@ -132,7 +184,9 @@ def main():
     Main entry point multicam command line application
     """
 
-    parser = argparse.ArgumentParser(description='acquire images from multiple cameras')
+    description_str = 'Acquires simultaneous images from multiple cameras and save to an hdf5 file.'
+
+    parser = argparse.ArgumentParser(description=description_str)
     parser.add_argument(
             '--config', '-c', 
             type=str, 
