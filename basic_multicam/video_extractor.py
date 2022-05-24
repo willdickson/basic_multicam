@@ -35,7 +35,10 @@ def main():
 
     # Load camera conifiguration
     camera_config = json.loads(h5file.attrs['jsonparam'])
-    metadata = camera_config['Metadata']
+    try:
+        metadata = camera_config['Metadata']
+    except KeyError:
+        metadata = ''
 
     # Save camera_configuration
     camera_config_file_path = os.path.join(path_to_h5file, f'camera_config_{metadata}.json')
