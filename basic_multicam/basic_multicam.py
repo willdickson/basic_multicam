@@ -30,13 +30,21 @@ import threading
 import configparser
 import cv2
 import numpy as np
-import PySpin
+import platform
 import EasyPySpin
 import h5_logger
 
+OS_TYPE = platform.system()
+if OS_TYPE == 'Windows':
+    from pyspin import PySpin
+else:
+    import PySpin
 
 DEFAULT_CONFIG_FILE = 'camera_config.ini'
-DEFAULT_CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'multicam')
+if OS_TYPE == 'Windows':
+    DEFAULT_CONFIG_DIR = os.path.join(os.environ['USERPROFILE'], '.config', 'multicam')
+else:
+    DEFAULT_CONFIG_DIR = os.path.join(os.environ['HOME'], '.config', 'multicam')
 
 done = False
 def handle_sigint(signum, frame):
