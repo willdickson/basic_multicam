@@ -52,7 +52,6 @@ def handle_sigint(signum, frame):
     done = True
 signal.signal(signal.SIGINT, handle_sigint)
 
-
 PropertyConverter = { 
         'AcquisitionFrameRateEnable': bool, 
         'AcquisitionFrameRate': float,  
@@ -66,6 +65,10 @@ PropertyConverter = {
         'OffsetY': int,
         'ExposureTime': float,
         'Gain': float, 
+        }
+
+AcquisitionParamConverter = {
+        'Duration': float,
         }
 
 
@@ -109,7 +112,17 @@ def get_config(filename):
                 continue
             config_dict[prop_name] = converter(value)
 
-    return camera_config_dict
+    # Load in optional acquisition configuration 
+    acquisition_config_dict = {}
+    try:
+        acquisition_config_dict = dict(config['Acquisition'])
+    except KeyError:
+        pass
+    for k,v in acquisition_config_dict.items():
+        acquisition_config_dict[k] = AcquisitionParamConverter[k](v)
+
+    return camera_config_dict, acquisition_config_dict
+
 
 
 def setup_cameras(config, args):
@@ -191,6 +204,7 @@ def main():
     """
     Main entry point multicam command line application
     """
+    global done
 
     description_str = 'Acquires simultaneous images from multiple cameras and save to an hdf5 file.'
 
@@ -240,7 +254,7 @@ def main():
     print(f'config_file: {config_file}')
 
     # Setup cameras based configuration
-    camera_config = get_config(config_file)
+    camera_config, acquisition_config = get_config(config_file)
     cap_dict = setup_cameras(camera_config, args)
 
     if not args.norecord:
@@ -253,6 +267,7 @@ def main():
     display_thread.start()
 
     # Set timing data
+    t_start = time.time()
     t_last = {}
     fps = {}
     for camera in cap_dict:
@@ -265,6 +280,12 @@ def main():
         w = camera_config[camera]['Width']
         h = camera_config[camera]['Height']
         dummy_frame[camera] = np.zeros((h,w),dtype=np.uint8)
+
+    duration = None
+    try:
+        duration = acquisition_config['Duration']
+    except KeyError:
+        pass
 
     while not done:
 
@@ -291,6 +312,9 @@ def main():
 
         if display_handler.queue.qsize() == 0 and frame_dict:
             display_handler.queue.put((frame_dict, fps))
+
+        if duration is not None:
+            done = all([t_last[cam] - t_start > duration for cam in cap_dict])
 
     for camera, cap in cap_dict.items():
         cap.release()
