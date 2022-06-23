@@ -305,7 +305,10 @@ def main():
             t_now = time.time()
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
-            fps[camera] = 0.95*fps[camera] + 0.05*(1.0/dt)
+            try:
+                fps[camera] = 0.95*fps[camera] + 0.05*(1.0/dt)
+            except ZeroDivisionError:
+                pass
 
         if not args.norecord:
             logger.add(frame_dict)
