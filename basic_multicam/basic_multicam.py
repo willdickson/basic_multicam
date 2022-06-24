@@ -147,7 +147,7 @@ def setup_cameras(config, args):
         print(f'  {camera}')
         cap_dict[camera] =  EasyPySpin.VideoCapture(prop_dict['SerialNumber'])
         cap_dict[camera].setExceptionMode(True)
-        cap_dict[camera].grabTimeout = 100
+        cap_dict[camera].grabTimeout = 100 # DEBUG: move this to constant??
         for prop_name, value in prop_dict.items():
             if prop_name in PropertyConverter:
                 cap_dict[camera].set_pyspin_value(prop_name, value)
@@ -295,6 +295,11 @@ def main():
             try:
                 rval, frame = cap.read()
             except PySpin.SpinnakerException as err:
+                # DEBUG: 
+                # ------------------------------------------------------------------------
+                # Need to distiguish between SpinnakerException and rval=False on return
+                # So as not to add a bunch empty frames to the beginning of file.
+                # ------------------------------------------------------------------------
                 rval = False
 
             if not rval:
