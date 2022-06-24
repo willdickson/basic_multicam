@@ -47,24 +47,29 @@ def main():
 
     h5file = h5py.File(args.filename, 'r')
 
-    path_to_h5file, _ = os.path.split(args.filename)
+    path_to_h5file, h5file_name = os.path.split(args.filename)
+    h5file_base_name, _ = os.path.splitext(h5file_name)
 
     # Load camera conifiguration
     camera_config = json.loads(h5file.attrs['jsonparam'])
-    try:
-        metadata = camera_config['Metadata']
-    except KeyError:
-        metadata = ''
+
+    # Remove for now as datetime string will be added twice for old files.
+    # -----------------------------------------------------------------------------------
+    #try:
+    #    metadata = camera_config['Metadata']
+    #except KeyError:
+    #    metadata = ''
+    # -----------------------------------------------------------------------------------
 
     # Save camera_configuration
-    camera_config_file_path = os.path.join(path_to_h5file, f'camera_config_{metadata}.json')
+    camera_config_file_path = os.path.join(path_to_h5file, f'camera_config_{h5file_base_name}.json')
     with open(camera_config_file_path, 'w') as f:
         json.dump(camera_config, f, indent=4, sort_keys=True)
 
     # Loop over cameras
     for camera_str in h5file:
         camera_name = camera_config[camera_str]['Name']
-        output_file = os.path.join(path_to_h5file, f'{camera_str}_{camera_name}_{metadata}.mp4')
+        output_file = os.path.join(path_to_h5file, f'{camera_str}_{camera_name}_{h5file_base_name}.mp4')
         framerate_str = str(camera_config[camera_str]['AcquisitionFrameRate'])
         inputdict={'-framerate': framerate_str} 
         outputdict={'-vcodec':'libx264', '-r': framerate_str}
