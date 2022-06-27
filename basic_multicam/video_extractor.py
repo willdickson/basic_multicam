@@ -22,6 +22,7 @@ import json
 import skvideo.io
 import cv2
 import tqdm
+import numpy as np
 
 def main():
 
@@ -67,17 +68,24 @@ def main():
         json.dump(camera_config, f, indent=4, sort_keys=True)
 
     # Loop over cameras
-    for camera_str in h5file:
-        camera_name = camera_config[camera_str]['Name']
-        output_file = os.path.join(path_to_h5file, f'{camera_str}_{camera_name}_{h5file_base_name}.mp4')
-        framerate_str = str(camera_config[camera_str]['AcquisitionFrameRate'])
-        inputdict={'-framerate': framerate_str} 
-        outputdict={'-vcodec':'libx264', '-r': framerate_str}
-        video_writer = skvideo.io.FFmpegWriter(output_file, inputdict=inputdict, outputdict=outputdict)
-        num_frame = h5file[camera_str].shape[0]
-        for frame in tqdm.tqdm(iterable=h5file[camera_str], total=num_frame, desc='Extracting...', ascii=False, ncols=75):
-            video_writer.writeFrame(frame)
-        video_writer.close()
+    for data_str in h5file:
+        if '_t' in data_str:
+            # Camera timestamps
+            t_stamps = h5file[data_str][()]
+            output_file  = os.path.join(path_to_h5file, f'{data_str}_{h5file_base_name}.txt')
+            np.savetxt(output_file, t_stamps)
+        else:
+            # Camera data
+            camera_name = camera_config[data_str]['Name']
+            output_file = os.path.join(path_to_h5file, f'{data_str}_{camera_name}_{h5file_base_name}.mp4')
+            framerate_str = str(camera_config[data_str]['AcquisitionFrameRate'])
+            inputdict={'-framerate': framerate_str} 
+            outputdict={'-vcodec':'libx264', '-r': framerate_str}
+            video_writer = skvideo.io.FFmpegWriter(output_file, inputdict=inputdict, outputdict=outputdict)
+            num_frame = h5file[data_str].shape[0]
+            for frame in tqdm.tqdm(iterable=h5file[data_str], total=num_frame, desc='Extracting...', ascii=False, ncols=75):
+                video_writer.writeFrame(frame)
+            video_writer.close()
 
 
 # -----------------------------------------------------------------------------------------

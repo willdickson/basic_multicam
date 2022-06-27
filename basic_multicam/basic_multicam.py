@@ -188,7 +188,7 @@ class DisplayHandler:
             except queue.Empty():
                 continue
 
-            camera_list = [camera for camera in frame_dict]
+            camera_list = [camera for camera in frame_dict if not '_t' in camera]
             cam_num = self.display_cam_num%len(camera_list)
             camera = camera_list[cam_num]
             frame = frame_dict[camera]
@@ -295,12 +295,8 @@ def main():
             try:
                 rval, frame = cap.read()
             except PySpin.SpinnakerException as err:
-                # DEBUG: 
-                # ------------------------------------------------------------------------
-                # Need to distiguish between SpinnakerException and rval=False on return
-                # So as not to add a bunch empty frames to the beginning of file.
-                # ------------------------------------------------------------------------
-                rval = False
+                print('PySpin.SpinnakerException')
+                break
 
             if not rval:
                 frame_dict[camera] = dummy_frame[camera]
@@ -310,19 +306,22 @@ def main():
             t_now = time.time()
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
+            frame_dict[f'{camera}_t'] = t_now
+
             try:
                 fps[camera] = 0.95*fps[camera] + 0.05*(1.0/dt)
             except ZeroDivisionError:
                 pass
 
-        if not args.norecord:
-            logger.add(frame_dict)
+        if frame_dict:
+            if not args.norecord:
+                logger.add(frame_dict)
 
-        if display_handler.queue.qsize() == 0 and frame_dict:
-            display_handler.queue.put((frame_dict, fps))
+            if display_handler.queue.qsize() == 0: 
+                display_handler.queue.put((frame_dict, fps))
 
         if duration is not None:
-            done = all([t_last[cam] - t_start > duration for cam in cap_dict])
+            done = time.time() - t_start > duration
 
     for camera, cap in cap_dict.items():
         cap.release()
