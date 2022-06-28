@@ -295,7 +295,6 @@ def main():
             try:
                 rval, frame = cap.read()
             except PySpin.SpinnakerException as err:
-                print('PySpin.SpinnakerException')
                 break
 
             if not rval:
