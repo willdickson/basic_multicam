@@ -320,7 +320,8 @@ def main():
                 display_handler.queue.put((frame_dict, fps))
 
         if duration is not None:
-            done = time.time() - t_start > duration
+            if time.time() - t_start > duration:
+                done = False
 
     for camera, cap in cap_dict.items():
         cap.release()
