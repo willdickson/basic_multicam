@@ -249,9 +249,11 @@ def main():
         curdir_config_file = os.path.join(os.curdir, DEFAULT_CONFIG_FILE)
         if os.path.exists(curdir_config_file):
             config_file = curdir_config_file
+            print(f'config_file: {config_file}')
         else:
             config_file = os.path.join(DEFAULT_CONFIG_DIR, DEFAULT_CONFIG_FILE)
-    print(f'config_file: {config_file}')
+            print(f'config_file: {config_file}')
+            ans = input('using default configuration file (enter to continue)')
 
     # Setup cameras based configuration
     camera_config, acquisition_config = get_config(config_file)
