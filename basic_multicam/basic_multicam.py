@@ -314,7 +314,7 @@ def main():
             except ZeroDivisionError:
                 pass
 
-        if frame_dict:
+        if len(frame_dict) == 2*len(cap_dict):
             if not args.norecord:
                 logger.add(frame_dict)
 
