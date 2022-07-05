@@ -271,10 +271,10 @@ def main():
     # Set timing data
     t_start = time.time()
     t_last = {}
-    fps = {}
+    dt_filt = {}
     for camera in cap_dict:
         t_last[camera] = time.time()
-        fps[camera] = 0.0
+        dt_filt[camera] = 1.0
 
     # Create dumm frames - for cases of missed frames
     dummy_frame = {}
@@ -308,22 +308,21 @@ def main():
             dt = t_now - t_last[camera]
             t_last[camera] = t_now
             frame_dict[f'{camera}_t'] = t_now
-
-            try:
-                fps[camera] = 0.95*fps[camera] + 0.05*(1.0/dt)
-            except ZeroDivisionError:
-                pass
+            dt_filt[camera] = 0.9*dt_filt[camera] + 0.1*dt
 
         if len(frame_dict) == 2*len(cap_dict):
             if not args.norecord:
                 logger.add(frame_dict)
 
             if display_handler.queue.qsize() == 0: 
+                fps = {}
+                for k,v in dt_filt.items():
+                    fps[k] = v if v > 0.0 else 0.0
                 display_handler.queue.put((frame_dict, fps))
 
         if duration is not None:
             if time.time() - t_start > duration:
-                done = False
+                done = True 
 
     for camera, cap in cap_dict.items():
         cap.release()
