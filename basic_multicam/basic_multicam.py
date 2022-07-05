@@ -317,7 +317,7 @@ def main():
             if display_handler.queue.qsize() == 0: 
                 fps = {}
                 for k,v in dt_filt.items():
-                    fps[k] = v if v > 0.0 else 0.0
+                    fps[k] = 1.0/v if v > 0.0 else 0.0
                 display_handler.queue.put((frame_dict, fps))
 
         if duration is not None:
