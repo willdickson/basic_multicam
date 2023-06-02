@@ -35,10 +35,11 @@ import EasyPySpin
 import h5_logger
 
 OS_TYPE = platform.system()
-if OS_TYPE == 'Windows':
-    from pyspin import PySpin
-else:
-    import PySpin
+#if OS_TYPE == 'Windows':
+#    from pyspin import PySpin
+#else:
+#    import PySpin
+import PySpin
 
 DEFAULT_CONFIG_FILE = 'camera_config.ini'
 if OS_TYPE == 'Windows':

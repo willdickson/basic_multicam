@@ -4,10 +4,13 @@
 # install: conda env create -f conda_env.yaml 
 # update:  conda env update -f conda_env.yaml 
 
+name: multicam
 dependencies:
   - python=3.8
   - pip
+  - h5py
   - numpy
+  - matplotlib
   - opencv
   - pip:
     - -r requirements.txt
